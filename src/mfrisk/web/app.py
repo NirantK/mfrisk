@@ -47,16 +47,11 @@ def con() -> duckdb.DuckDBPyConnection:
 
 
 def _rows(window: str, asset: str, q: str, sort: str, direction: str,
-          secondary: str, limit: int, offset: int):
-    # Convention: higher is better for every metric, so primary and secondary
-    # share the same direction (the user's chosen order). No per-metric flipping.
+          limit: int, offset: int):
+    # Convention: higher is better for every metric — uniform sort direction.
     primary = sort if sort in METRICS else "sortino"
-    sec = secondary if secondary in METRICS and secondary != primary else None
     dir_sql = "DESC" if direction == "desc" else "ASC"
-    nulls = "NULLS LAST"
-    order = f"m.{primary} {dir_sql} {nulls}"
-    if sec:
-        order += f", m.{sec} {dir_sql} {nulls}"
+    order = f"m.{primary} {dir_sql} NULLS LAST"
     where = ["m.win = ?"]
     params: list = [window]
     if asset and asset != "all":
@@ -96,14 +91,13 @@ def index(request: Request):
 
 @app.get("/rank", response_class=HTMLResponse)
 def rank(request: Request, window: str = "3Y", asset: str = "equity_domestic",
-         q: str = "", sort: str = "sortino", direction: str = "desc",
-         secondary: str = "", page: int = 1):
+         q: str = "", sort: str = "sortino", direction: str = "desc", page: int = 1):
     limit, offset = 50, (max(1, page) - 1) * 50
-    rows = _rows(window, asset, q, sort, direction, secondary, limit, offset)
+    rows = _rows(window, asset, q, sort, direction, limit, offset)
     return templates.TemplateResponse(request, "_rows.html", {
         "rows": rows, "metrics": METRICS, "window": window,
         "asset": asset, "q": q, "sort": sort, "direction": direction,
-        "secondary": secondary, "page": page,
+        "page": page,
     })
 
 

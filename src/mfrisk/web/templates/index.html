@@ -37,15 +37,6 @@
       </select>
     </div>
     <div class="ctl">
-      <label>Then by</label>
-      <select name="secondary">
-        <option value="">—</option>
-        {% for k,(lbl,low) in metrics.items() %}
-        <option value="{{ k }}">{{ lbl }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="ctl">
       <label>Order</label>
       <select name="direction">
         <option value="desc" selected>High → Low</option>
