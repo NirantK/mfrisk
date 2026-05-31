@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}{{ fund.display_name }} · mfrisk{% endblock %}
+{% macro pct(x) %}{% if x is not none %}{{ "%.1f%%"|format(x*100) }}{% else %}—{% endif %}{% endmacro %}
+{% macro num(x) %}{% if x is not none %}{{ "%.2f"|format(x) }}{% else %}—{% endif %}{% endmacro %}
+{% block content %}
+<a href="/" class="back">← all funds</a>
+<h1 class="fundname">{{ fund.display_name }}</h1>
+<p class="submeta">
+  <span class="badge ac-{{ fund.asset_class }}">{{ fund.asset_class.replace('_',' ') }}</span>
+  {{ fund.fund_house }} · {{ fund.category }} ·
+  {% if fund.inactive %}<span class="plan plan-regular">inactive</span>{% else %}<span class="plan plan-direct">active</span>{% endif %}
+  · as of {{ fund.as_of }}
+</p>
+
+<div id="chart"></div>
+
+<table class="rank detail">
+  <thead><tr><th>Window</th><th>Plan</th><th class="r">CAGR</th><th class="r">Sortino</th>
+    <th class="r">Ulcer</th><th class="r">Martin</th><th class="r">Max DD</th>
+    <th class="r">Sharpe</th><th class="r">Vol</th><th class="r">mo</th></tr></thead>
+  <tbody>
+  {% for w in windows %}
+    {% set m = metrics_by_win.get(w) %}
+    {% if m %}
+    <tr><td class="strong">{{ w }}</td><td><span class="plan plan-{{ m.plan_used }}">{{ m.plan_used }}</span></td>
+      <td class="r {{ 'pos' if m.cagr and m.cagr>0 else 'neg' if m.cagr is not none }}">{{ pct(m.cagr) }}</td>
+      <td class="r strong">{{ num(m.sortino) }}</td>
+      <td class="r">{{ num(m.ulcer_index) }}</td>
+      <td class="r">{{ num(m.martin) }}</td>
+      <td class="r neg">{{ pct(m.max_drawdown) }}</td>
+      <td class="r">{{ num(m.sharpe) }}</td>
+      <td class="r">{{ pct(m.vol) }}</td>
+      <td class="r dim">{{ m.n_months }}</td></tr>
+    {% endif %}
+  {% endfor %}
+  </tbody>
+</table>
+
+<script>
+const EVENTS = {{ events|tojson }};
+async function draw() {
+  const res = await fetch("/fund/{{ fund.fund_id }}/series");
+  const d = await res.json();
+  if (!d.t.length) { document.getElementById('chart').innerHTML = '<p class="empty">No NAV series.</p>'; return; }
+  const xs = d.t.map(s => Date.parse(s)/1000);
+  const ys = d.v;
+  const evMap = EVENTS.map(e => ({x: Date.parse(e.date)/1000, label: e.label, sev: e.severity}))
+                      .filter(e => e.x >= xs[0] && e.x <= xs[xs.length-1]);
+  const eventPlugin = { hooks: { draw: u => {
+    const ctx = u.ctx;
+    ctx.save(); ctx.strokeStyle = 'rgba(220,60,60,0.45)'; ctx.fillStyle = 'rgba(220,60,60,0.85)';
+    ctx.font = '10px system-ui';
+    for (const e of evMap) {
+      const cx = u.valToPos(e.x, 'x', true);
+      ctx.lineWidth = e.sev; ctx.beginPath();
+      ctx.moveTo(cx, u.bbox.top); ctx.lineTo(cx, u.bbox.top + u.bbox.height); ctx.stroke();
+      ctx.save(); ctx.translate(cx+3, u.bbox.top+8); ctx.fillText(e.label, 0, 0); ctx.restore();
+    }
+    ctx.restore();
+  }}};
+  const opts = {
+    width: Math.min(1100, document.querySelector('main').clientWidth), height: 340,
+    scales: { y: { distr: 3 } },
+    series: [ {}, { label: 'NAV', stroke: '#2563eb', width: 1.5, fill: 'rgba(37,99,235,0.08)' } ],
+    axes: [ {}, { label: 'NAV (log)' } ],
+    plugins: [eventPlugin],
+  };
+  new uPlot(opts, [xs, ys], document.getElementById('chart'));
+}
+draw();
+</script>
+{% endblock %}

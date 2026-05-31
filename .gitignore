@@ -21,3 +21,4 @@ mf_list.json
 
 # generated catalog + NAV cache (regenerate via `mfrisk catalog`/`ingest`)
 data/
+.gstack/

@@ -1,0 +1,68 @@
+:root{
+  --bg:#0f1115; --panel:#171a21; --line:#262b36; --ink:#e7eaf0; --dim:#8a93a6;
+  --pos:#34d399; --neg:#f87171; --good:#34d399; --bad:#f59e0b; --accent:#60a5fa;
+}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  background:var(--bg);color:var(--ink)}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+.topbar{display:flex;align-items:center;gap:14px;padding:12px 20px;
+  border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+.brand{font-weight:800;font-size:20px;letter-spacing:-.5px;color:var(--ink)}
+.brand span{color:var(--accent)}
+.tag{color:var(--dim);font-size:12px}
+.counts{margin-left:auto;color:var(--dim);font-size:12px;font-variant-numeric:tabular-nums}
+main{padding:18px 20px;max-width:1280px;margin:0 auto}
+
+.controls{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.ctl{display:flex;flex-direction:column;gap:6px}
+.ctl.grow{flex:1;min-width:180px}
+.ctl>label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim)}
+select,input[type=search]{background:#0d0f14;color:var(--ink);border:1px solid var(--line);
+  border-radius:7px;padding:7px 9px;font-size:13px;min-width:120px}
+input[type=search]{width:100%}
+.chips{display:flex;gap:5px}
+.chip{position:relative}
+.chip input{position:absolute;opacity:0;inset:0;cursor:pointer}
+.chip span{display:inline-block;padding:7px 11px;border:1px solid var(--line);border-radius:7px;
+  background:#0d0f14;font-variant-numeric:tabular-nums;font-size:13px}
+.chip input:checked+span{background:var(--accent);color:#04101f;border-color:var(--accent);font-weight:700}
+
+.tablewrap{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+table.rank{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+table.rank th{background:#11141b;text-align:left;font-size:11px;text-transform:uppercase;
+  letter-spacing:.4px;color:var(--dim);padding:9px 10px;border-bottom:1px solid var(--line);position:sticky;top:53px}
+table.rank td{padding:8px 10px;border-bottom:1px solid #1c212b}
+table.rank tr:hover td{background:#141821}
+.r{text-align:right}
+.num{text-align:right;color:var(--dim);width:38px}
+.name{max-width:420px}
+.name a{font-weight:600}
+.house{display:block;color:var(--dim);font-size:11px}
+.strong{font-weight:700}
+.pos{color:var(--pos)} .neg{color:var(--neg)} .good{color:var(--good)} .bad{color:var(--bad)}
+.dim{color:var(--dim)}
+.empty{text-align:center;color:var(--dim);padding:30px}
+
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;
+  background:#1d2330;color:#aab4c8;white-space:nowrap;text-transform:capitalize}
+.ac-equity_domestic{background:#13322a;color:#5ee7b8}
+.ac-equity_global{background:#142a3a;color:#6cc4f5}
+.ac-equity_passive{background:#192a3a;color:#86b8e6}
+.ac-hybrid,.ac-hybrid_multiasset,.ac-hybrid_arbitrage{background:#2c2640;color:#b9a6f0}
+.ac-debt{background:#332a18;color:#e6c389}
+.ac-commodity{background:#33301a;color:#e6d089}
+.ac-solution,.ac-other{background:#262b36;color:#9aa6bb}
+.plan{font-size:10px;padding:2px 6px;border-radius:5px;text-transform:uppercase;letter-spacing:.3px}
+.plan-direct{background:#13322a;color:#5ee7b8}
+.plan-regular{background:#2a2233;color:#d6a8e6}
+
+.back{display:inline-block;margin-bottom:8px;color:var(--dim)}
+.fundname{margin:4px 0 6px;font-size:22px;letter-spacing:-.3px}
+.submeta{color:var(--dim);margin:0 0 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#chart{margin:6px 0 22px}
+.detail{margin-top:6px}
+.uplot{font-family:system-ui}

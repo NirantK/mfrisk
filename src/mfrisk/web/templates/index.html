@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block headmeta %}
+  <span class="counts">{{ "{:,}".format(nfunds) }} funds · {{ "{:,}".format(nmetrics) }} metric rows</span>
+{% endblock %}
+{% block content %}
+<form id="controls"
+      hx-get="/rank" hx-target="#rows" hx-swap="innerHTML"
+      hx-trigger="load, change, keyup delay:300ms from:input[name=q]"
+      hx-include="#controls">
+  <div class="controls">
+    <div class="ctl">
+      <label>Window</label>
+      <div class="chips">
+        {% for w in windows %}
+        <label class="chip">
+          <input type="radio" name="window" value="{{ w }}" {% if w=='3Y' %}checked{% endif %}>
+          <span>{{ w }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="ctl">
+      <label>Asset class</label>
+      <select name="asset">
+        <option value="all">All</option>
+        {% for a, label, n in assets %}
+        <option value="{{ a }}" {% if a=='equity_domestic' %}selected{% endif %}>{{ label }} ({{ n }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="ctl">
+      <label>Sort by</label>
+      <select name="sort">
+        {% for k,(lbl,low) in metrics.items() %}
+        <option value="{{ k }}" {% if k=='sortino' %}selected{% endif %}>{{ lbl }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="ctl">
+      <label>Then by</label>
+      <select name="secondary">
+        <option value="">—</option>
+        {% for k,(lbl,low) in metrics.items() %}
+        <option value="{{ k }}">{{ lbl }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="ctl">
+      <label>Order</label>
+      <select name="direction">
+        <option value="desc" selected>High → Low</option>
+        <option value="asc">Low → High</option>
+      </select>
+    </div>
+    <div class="ctl grow">
+      <label>Search</label>
+      <input type="search" name="q" placeholder="fund or house…" autocomplete="off">
+    </div>
+  </div>
+  <input type="hidden" name="page" value="1">
+</form>
+
+<div class="tablewrap">
+  <table class="rank">
+    <thead>
+      <tr>
+        <th class="num">#</th>
+        <th class="name">Fund</th>
+        <th>Class</th>
+        <th>Plan</th>
+        <th class="r">Sortino</th>
+        <th class="r">Ulcer</th>
+        <th class="r">Martin</th>
+        <th class="r">CAGR</th>
+        <th class="r">Max DD</th>
+        <th class="r">Sharpe</th>
+        <th class="r">mo</th>
+      </tr>
+    </thead>
+    <tbody id="rows"><tr><td colspan="11" class="empty">Loading…</td></tr></tbody>
+  </table>
+</div>
+{% endblock %}

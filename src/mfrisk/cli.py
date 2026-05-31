@@ -88,6 +88,21 @@ def status():
 
 
 @app.command()
+def compute():
+    """Compute risk-adjusted metrics from the NAV cache into DuckDB."""
+    from . import metrics as metrics_mod
+    summary = metrics_mod.compute()
+    typer.echo(f"computed funds={summary['funds']}  metric_rows={summary['metric_rows']}")
+
+
+@app.command()
+def serve(host: str = "127.0.0.1", port: int = 8000):
+    """Launch the FastAPI + HTMX microsite."""
+    import uvicorn
+    uvicorn.run("mfrisk.web.app:app", host=host, port=port, log_level="info")
+
+
+@app.command()
 def events():
     """Print the static market-events dictionary."""
     from .data.market_events import events as ev
