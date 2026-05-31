@@ -1,28 +1,29 @@
 {% extends "base.html" %}
 {% block title %}{{ fund.display_name }} · mfrisk{% endblock %}
-{% macro pct(x) %}{% if x is not none %}{{ "%.1f%%"|format(x*100) }}{% else %}—{% endif %}{% endmacro %}
+{% macro pct(x) %}{% if x is not none %}{{ "%.1f"|format(x*100) }}%{% else %}—{% endif %}{% endmacro %}
 {% macro num(x) %}{% if x is not none %}{{ "%.2f"|format(x) }}{% else %}—{% endif %}{% endmacro %}
 {% block content %}
 <a href="/" class="back">← all funds</a>
 <h1 class="fundname">{{ fund.display_name }}</h1>
-<p class="submeta">
-  <span class="badge ac-{{ fund.asset_class }}">{{ fund.asset_class.replace('_',' ') }}</span>
-  {{ fund.fund_house }} · {{ fund.category }} ·
-  {% if fund.inactive %}<span class="plan plan-regular">inactive</span>{% else %}<span class="plan plan-direct">active</span>{% endif %}
-  · as of {{ fund.as_of }}
-</p>
+<p class="submeta">{{ fund.asset_class.replace('_',' ') }}
+  <span class="sep">·</span> {{ fund.fund_house }}
+  <span class="sep">·</span> {{ fund.category }}
+  <span class="sep">·</span> {% if fund.inactive %}inactive{% else %}active{% endif %}
+  <span class="sep">·</span> NAV to {{ fund.as_of }}</p>
 
 <div id="chart"></div>
+<p class="legend-events">Vertical rules mark major India market events; hover the chart for NAV. Log scale.</p>
 
 <table class="rank detail">
-  <thead><tr><th>Window</th><th>Plan</th><th class="r">CAGR</th><th class="r">Sortino</th>
+  <caption>Risk-adjusted metrics by window — risk-free 6%, month-end NAV</caption>
+  <thead><tr><th class="name">Window</th><th class="name">Plan</th><th class="r">CAGR</th><th class="r">Sortino</th>
     <th class="r">Ulcer</th><th class="r">Martin</th><th class="r">Max DD</th>
     <th class="r">Sharpe</th><th class="r">Vol</th><th class="r">mo</th></tr></thead>
   <tbody>
   {% for w in windows %}
     {% set m = metrics_by_win.get(w) %}
     {% if m %}
-    <tr><td class="strong">{{ w }}</td><td><span class="plan plan-{{ m.plan_used }}">{{ m.plan_used }}</span></td>
+    <tr><td class="name strong">{{ w }}</td><td class="name"><span class="plan plan-{{ m.plan_used }}">{{ m.plan_used }}</span></td>
       <td class="r {{ 'pos' if m.cagr and m.cagr>0 else 'neg' if m.cagr is not none }}">{{ pct(m.cagr) }}</td>
       <td class="r strong">{{ num(m.sortino) }}</td>
       <td class="r">{{ num(m.ulcer_index) }}</td>
@@ -42,28 +43,35 @@ async function draw() {
   const res = await fetch("/fund/{{ fund.fund_id }}/series");
   const d = await res.json();
   if (!d.t.length) { document.getElementById('chart').innerHTML = '<p class="empty">No NAV series.</p>'; return; }
-  const xs = d.t.map(s => Date.parse(s)/1000);
-  const ys = d.v;
-  const evMap = EVENTS.map(e => ({x: Date.parse(e.date)/1000, label: e.label, sev: e.severity}))
-                      .filter(e => e.x >= xs[0] && e.x <= xs[xs.length-1]);
+  const xs = d.t.map(s => Date.parse(s)/1000), ys = d.v;
+  const evs = EVENTS.map(e => ({x: Date.parse(e.date)/1000, label: e.label}))
+                    .filter(e => e.x >= xs[0] && e.x <= xs[xs.length-1]);
+  // events drawn as quiet gray rules; labels staggered in a top strip to avoid collisions
   const eventPlugin = { hooks: { draw: u => {
-    const ctx = u.ctx;
-    ctx.save(); ctx.strokeStyle = 'rgba(220,60,60,0.45)'; ctx.fillStyle = 'rgba(220,60,60,0.85)';
-    ctx.font = '10px system-ui';
-    for (const e of evMap) {
+    const ctx = u.ctx; ctx.save();
+    ctx.font = '10px system-ui'; ctx.textBaseline = 'top';
+    evs.forEach((e,i) => {
       const cx = u.valToPos(e.x, 'x', true);
-      ctx.lineWidth = e.sev; ctx.beginPath();
-      ctx.moveTo(cx, u.bbox.top); ctx.lineTo(cx, u.bbox.top + u.bbox.height); ctx.stroke();
-      ctx.save(); ctx.translate(cx+3, u.bbox.top+8); ctx.fillText(e.label, 0, 0); ctx.restore();
-    }
+      ctx.strokeStyle = 'rgba(158,43,37,0.40)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cx, u.bbox.top); ctx.lineTo(cx, u.bbox.top + u.bbox.height); ctx.stroke();
+      ctx.fillStyle = '#9e2b25';
+      const ty = u.bbox.top + (i % 2) * 13 + 1;
+      ctx.save(); ctx.translate(cx + 3, ty); ctx.fillText(e.label, 0, 0); ctx.restore();
+    });
     ctx.restore();
   }}};
   const opts = {
-    width: Math.min(1100, document.querySelector('main').clientWidth), height: 340,
+    width: Math.min(1100, document.querySelector('main').clientWidth), height: 320,
     scales: { y: { distr: 3 } },
-    series: [ {}, { label: 'NAV', stroke: '#2563eb', width: 1.5, fill: 'rgba(37,99,235,0.08)' } ],
-    axes: [ {}, { label: 'NAV (log)' } ],
+    series: [ {}, { label: 'NAV', stroke: '#111110', width: 1.25 } ],
+    axes: [
+      { stroke:'#74746c', grid:{stroke:'#ececdf',width:1}, ticks:{stroke:'#d6d5c7'},
+        font:'11px system-ui' },
+      { stroke:'#74746c', grid:{stroke:'#ececdf',width:1}, ticks:{stroke:'#d6d5c7'},
+        font:'11px system-ui' },
+    ],
     plugins: [eventPlugin],
+    cursor: { points: { size: 5 } },
   };
   new uPlot(opts, [xs, ys], document.getElementById('chart'));
 }

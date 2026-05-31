@@ -63,6 +63,21 @@ def load_series(code: int | None) -> pl.DataFrame | None:
     return df if df.height > 1 else None
 
 
+def spark_values(direct: pl.DataFrame | None, regular: pl.DataFrame | None,
+                 max_points: int = 60) -> str | None:
+    """Compact monthly NAV path (longest series) for an inline row sparkline."""
+    s = regular if regular is not None else direct
+    if s is None:
+        return None
+    monthly = s.group_by_dynamic("date", every="1mo").agg(pl.col("nav").last()).sort("date")
+    vals = monthly["nav"].to_list()
+    if len(vals) < 3:
+        return None
+    step = max(1, len(vals) // max_points)
+    vals = vals[::step][-max_points:]
+    return ";".join(f"{v:.4g}" for v in vals)
+
+
 def _span_days(df: pl.DataFrame) -> int:
     return (df["date"].max() - df["date"].min()).days
 
@@ -151,7 +166,7 @@ def compute(progress_every: int = 250) -> dict:
         CREATE TABLE fund(
             fund_id INTEGER, display_name TEXT, fund_house TEXT, category TEXT,
             asset_class TEXT, direct_growth_code INTEGER, regular_growth_code INTEGER,
-            as_of DATE, inactive BOOLEAN);
+            as_of DATE, inactive BOOLEAN, spark TEXT);
         CREATE TABLE metric(
             fund_id INTEGER, win TEXT, plan_used TEXT, as_of DATE, n_months INTEGER,
             cagr DOUBLE, ann_return DOUBLE, vol DOUBLE, downside_dev DOUBLE,
@@ -177,7 +192,7 @@ def compute(progress_every: int = 250) -> dict:
         fund_rows.append((
             f["fund_id"], f["display_name"], f.get("fund_house"), f.get("category"),
             f["asset_class"], f["direct_growth_code"], f["regular_growth_code"],
-            as_of, inactive,
+            as_of, inactive, spark_values(direct, regular),
         ))
         for wname, yrs in WINDOWS:
             s, plan = pick_series(direct, regular, yrs)
@@ -196,7 +211,7 @@ def compute(progress_every: int = 250) -> dict:
             print(f"  computed {computed}/{len(funds)} funds, {len(metric_rows)} metric rows",
                   flush=True)
 
-    con.executemany("INSERT INTO fund VALUES (" + ",".join(["?"] * 9) + ")", fund_rows)
+    con.executemany("INSERT INTO fund VALUES (" + ",".join(["?"] * 10) + ")", fund_rows)
     con.executemany("INSERT INTO metric VALUES (" + ",".join(["?"] * 14) + ")", metric_rows)
     con.execute("CREATE INDEX idx_metric_window ON metric(win)")
     con.execute("CREATE INDEX idx_fund_ac ON fund(asset_class)")

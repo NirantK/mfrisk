@@ -48,14 +48,15 @@ def con() -> duckdb.DuckDBPyConnection:
 
 def _rows(window: str, asset: str, q: str, sort: str, direction: str,
           secondary: str, limit: int, offset: int):
+    # Convention: higher is better for every metric, so primary and secondary
+    # share the same direction (the user's chosen order). No per-metric flipping.
     primary = sort if sort in METRICS else "sortino"
     sec = secondary if secondary in METRICS and secondary != primary else None
     dir_sql = "DESC" if direction == "desc" else "ASC"
     nulls = "NULLS LAST"
     order = f"m.{primary} {dir_sql} {nulls}"
     if sec:
-        sec_dir = "ASC" if METRICS[sec][1] else "DESC"
-        order += f", m.{sec} {sec_dir} {nulls}"
+        order += f", m.{sec} {dir_sql} {nulls}"
     where = ["m.win = ?"]
     params: list = [window]
     if asset and asset != "all":
@@ -66,7 +67,7 @@ def _rows(window: str, asset: str, q: str, sort: str, direction: str,
         params.append(f"%{q.lower()}%")
     sql = f"""
         SELECT f.fund_id, f.display_name, f.fund_house, f.asset_class, f.category,
-               f.inactive, m.plan_used, m.sortino, m.ulcer_index, m.martin, m.cagr,
+               f.inactive, f.spark, m.plan_used, m.sortino, m.ulcer_index, m.martin, m.cagr,
                m.ann_return, m.max_drawdown, m.sharpe, m.vol, m.n_months
         FROM metric m JOIN fund f USING (fund_id)
         WHERE {' AND '.join(where)}

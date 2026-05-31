@@ -1,4 +1,4 @@
-{% macro pct(x) %}{% if x is not none %}{{ "%.1f%%"|format(x*100) }}{% else %}—{% endif %}{% endmacro %}
+{% macro pct(x) %}{% if x is not none %}{{ "%.1f"|format(x*100) }}%{% else %}—{% endif %}{% endmacro %}
 {% macro num(x) %}{% if x is not none %}{{ "%.2f"|format(x) }}{% else %}—{% endif %}{% endmacro %}
 {% if not rows %}
 <tr><td colspan="11" class="empty">No funds match — try a longer window or another class.</td></tr>
@@ -7,15 +7,15 @@
 <tr>
   <td class="num">{{ loop.index + (page-1)*50 }}</td>
   <td class="name"><a href="/fund/{{ r.fund_id }}">{{ r.display_name }}</a>
-      <span class="house">{{ r.fund_house }}</span></td>
-  <td><span class="badge ac-{{ r.asset_class }}">{{ r.asset_class.replace('_',' ') }}</span></td>
-  <td><span class="plan plan-{{ r.plan_used }}">{{ r.plan_used }}</span></td>
-  <td class="r strong {{ 'pos' if r.sortino and r.sortino>0 else 'neg' if r.sortino is not none }}">{{ num(r.sortino) }}</td>
-  <td class="r {{ 'good' if r.ulcer_index and r.ulcer_index<5 else 'bad' if r.ulcer_index and r.ulcer_index>15 }}">{{ num(r.ulcer_index) }}</td>
-  <td class="r">{{ num(r.martin) }}</td>
-  <td class="r {{ 'pos' if r.cagr and r.cagr>0 else 'neg' if r.cagr is not none }}">{{ pct(r.cagr) }}</td>
-  <td class="r neg">{{ pct(r.max_drawdown) }}</td>
-  <td class="r">{{ num(r.sharpe) }}</td>
+      <span class="house">{{ r.fund_house }} · <span class="plan plan-{{ r.plan_used }}">{{ r.plan_used }}</span></span></td>
+  <td><svg class="spark" data-v="{{ r.spark or '' }}" viewBox="0 0 108 26" preserveAspectRatio="none"></svg></td>
+  <td class="cls">{{ r.asset_class.replace('_',' ') }}</td>
+  <td class="r {{ 'sorted' if sort=='sortino' }} {{ 'pos' if r.sortino and r.sortino>0 else 'neg' if r.sortino is not none }}">{{ num(r.sortino) }}</td>
+  <td class="r {{ 'sorted' if sort=='ulcer_index' }}">{{ num(r.ulcer_index) }}</td>
+  <td class="r {{ 'sorted' if sort=='martin' }}">{{ num(r.martin) }}</td>
+  <td class="r {{ 'sorted' if sort=='cagr' }} {{ 'pos' if r.cagr and r.cagr>0 else 'neg' if r.cagr is not none }}">{{ pct(r.cagr) }}</td>
+  <td class="r {{ 'sorted' if sort=='max_drawdown' }} neg">{{ pct(r.max_drawdown) }}</td>
+  <td class="r {{ 'sorted' if sort=='sharpe' }}">{{ num(r.sharpe) }}</td>
   <td class="r dim">{{ r.n_months }}</td>
 </tr>
 {% endfor %}

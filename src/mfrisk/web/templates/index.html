@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block headmeta %}
-  <span class="counts">{{ "{:,}".format(nfunds) }} funds · {{ "{:,}".format(nmetrics) }} metric rows</span>
+  <span class="counts">{{ "{:,}".format(nfunds) }} funds · {{ "{:,}".format(nmetrics) }} metrics</span>
 {% endblock %}
 {% block content %}
 <form id="controls"
@@ -29,7 +29,7 @@
       </select>
     </div>
     <div class="ctl">
-      <label>Sort by</label>
+      <label>Rank by</label>
       <select name="sort">
         {% for k,(lbl,low) in metrics.items() %}
         <option value="{{ k }}" {% if k=='sortino' %}selected{% endif %}>{{ lbl }}</option>
@@ -66,18 +66,50 @@
       <tr>
         <th class="num">#</th>
         <th class="name">Fund</th>
-        <th>Class</th>
-        <th>Plan</th>
-        <th class="r">Sortino</th>
-        <th class="r">Ulcer</th>
-        <th class="r">Martin</th>
-        <th class="r">CAGR</th>
-        <th class="r">Max DD</th>
-        <th class="r">Sharpe</th>
-        <th class="r">mo</th>
+        <th class="sparkh" data-tip="Monthly NAV path over the fund's full history (log of growth). Red dot = latest."><span class="lbl">NAV path</span></th>
+        <th class="name">Class</th>
+        <th class="r" data-key="sortino" data-tip="Sortino: annual return above the 6% risk-free rate per unit of downside volatility. Penalises losses, not upside swings. Higher is better."><span class="lbl">Sortino</span></th>
+        <th class="r" data-key="ulcer_index" data-tip="Ulcer Index: depth and duration of drawdowns combined — the felt pain of holding. (Smaller drawdowns rank higher.)"><span class="lbl">Ulcer</span></th>
+        <th class="r" data-key="martin" data-tip="Martin ratio (UPI): excess return per unit of Ulcer pain. The Sortino analogue using drawdown pain. Higher is better."><span class="lbl">Martin</span></th>
+        <th class="r" data-key="cagr" data-tip="Compound annual growth rate of NAV over the selected window."><span class="lbl">CAGR</span></th>
+        <th class="r" data-key="max_drawdown" data-tip="Max drawdown: the worst peak-to-trough fall within the window. Higher (closer to zero) is better."><span class="lbl">Max DD</span></th>
+        <th class="r" data-key="sharpe" data-tip="Sharpe: excess return over the 6% risk-free rate per unit of total volatility. Higher is better."><span class="lbl">Sharpe</span></th>
+        <th class="r" data-tip="Months of NAV data used in the window's calculation."><span class="lbl">mo</span></th>
       </tr>
     </thead>
     <tbody id="rows"><tr><td colspan="11" class="empty">Loading…</td></tr></tbody>
   </table>
 </div>
+
+<script>
+function drawSparks(root){
+  (root||document).querySelectorAll('svg.spark[data-v]').forEach(svg=>{
+    if(svg.dataset.done) return; svg.dataset.done=1;
+    const v=svg.dataset.v.split(';').map(Number).filter(x=>!isNaN(x));
+    if(v.length<2) return;
+    const W=108,H=26,P=3, mn=Math.min(...v), mx=Math.max(...v), rng=(mx-mn)||1;
+    const X=i=>P+i*(W-2*P)/(v.length-1), Y=val=>H-P-((val-mn)/rng)*(H-2*P);
+    const pts=v.map((val,i)=>X(i).toFixed(1)+','+Y(val).toFixed(1)).join(' ');
+    const ns='http://www.w3.org/2000/svg';
+    const pl=document.createElementNS(ns,'polyline');
+    pl.setAttribute('class','line'); pl.setAttribute('points',pts); svg.appendChild(pl);
+    const d=document.createElementNS(ns,'circle');
+    d.setAttribute('class','dot'); d.setAttribute('cx',X(v.length-1));
+    d.setAttribute('cy',Y(v[v.length-1])); d.setAttribute('r','1.6'); svg.appendChild(d);
+  });
+}
+function markSort(){
+  const k=document.querySelector('#controls [name=sort]').value;
+  document.querySelectorAll('thead th[data-key]').forEach(th=>{
+    const on=th.dataset.key===k;
+    th.classList.toggle('sorted',on);
+    th.querySelector('.arrow')?.remove();
+    if(on){const dir=document.querySelector('#controls [name=direction]').value;
+      const s=document.createElement('span'); s.className='arrow';
+      s.textContent=dir==='asc'?' ↑':' ↓'; th.appendChild(s);}
+  });
+}
+document.body.addEventListener('htmx:afterSwap',e=>{if(e.target.id==='rows'){drawSparks();markSort();}});
+markSort();
+</script>
 {% endblock %}
