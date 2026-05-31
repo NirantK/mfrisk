@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mfrisk · antislop audit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=Spectral:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#fffff8;--ink:#111110;--ink2:#3a3a36;--dim:#74746c;--faint:#b8b8ad;
+  --rule:#e7e6da;--pos:#2f6b3a;--neg:#9e2b25;--accent:#3b5b8c;--hi:#f3efe0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font:16px/1.55 "Source Serif 4",Charter,Georgia,serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:920px;margin:0 auto;padding:44px 28px 90px}
+h1{font-family:"Spectral",Georgia,serif;font-size:34px;letter-spacing:-.4px;margin:0 0 2px}
+h1 span{font-style:italic}
+h2{font-family:"Spectral",Georgia,serif;font-size:21px;margin:38px 0 12px;
+  border-bottom:1px solid var(--ink);padding-bottom:6px}
+.sub{color:var(--dim);font-style:italic;margin:0 0 26px}
+.verdict{background:var(--hi);border-left:3px solid var(--pos);padding:14px 18px;
+  border-radius:0 6px 6px 0;margin:8px 0 4px}
+.verdict b{font-weight:700}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:18px 0}
+.card{border:1px solid var(--rule);border-radius:8px;padding:14px 16px}
+.card .n{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.card .n.good{color:var(--pos)} .card .n.flat{color:var(--ink)}
+.card .l{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--dim);
+  font-family:system-ui,sans-serif;margin-top:6px}
+.card .d{font-size:12.5px;color:var(--dim);margin-top:4px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;margin:6px 0}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--dim);
+  font-family:system-ui,sans-serif;font-weight:400;border-bottom:1px solid var(--ink);padding:0 12px 7px 0}
+td{padding:7px 12px 7px 0;border-bottom:1px solid var(--rule);font-size:14.5px}
+td.r,th.r{text-align:right}
+.bar{display:inline-block;height:9px;background:var(--accent);border-radius:2px;vertical-align:middle;opacity:.55}
+.ok{color:var(--pos);font-weight:700} .no{color:var(--neg)}
+ul{padding-left:20px} li{margin:5px 0}
+.lead{color:var(--ink2)}
+.thresh{color:var(--faint);font-size:12px;font-family:system-ui,sans-serif}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;background:var(--hi);
+  padding:1px 5px;border-radius:3px}
+footer{margin-top:46px;color:var(--dim);font-size:12.5px;font-style:italic}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>mf<span>risk</span> — antislop audit</h1>
+  <p class="sub">Maintainability pass on <code>main</code> · 2026-05-31</p>
+
+  <div class="verdict">
+    <b>Verdict: already product-shaped — this pass added the one thing missing.</b>
+    The repo had no structural slop to unwind: every file is small and feature-foldered,
+    nothing exceeds the 300-line AI-editable threshold. The real gap was a <b>zero-test
+    safety net over correctness-critical math</b>. We added 26 narrow tests, extracted one
+    pure helper for testability, and fixed two small correctness/cleanliness issues found
+    along the way. No behavior-risky structural churn was warranted.
+  </div>
+
+  <h2>Headline metrics</h2>
+  <div class="cards">
+    <div class="card"><div class="n good">26</div><div class="l">Tests</div><div class="d">from 0 — all green, &lt;1.3s</div></div>
+    <div class="card"><div class="n flat">0</div><div class="l">Files &gt; 300 LOC</div><div class="d">largest is 224 (metrics.py)</div></div>
+    <div class="card"><div class="n good">0</div><div class="l">Ruff errors</div><div class="d">fixed 1 dead import</div></div>
+    <div class="card"><div class="n flat">1,385</div><div class="l">Source LOC</div><div class="d">+162 LOC of tests</div></div>
+    <div class="card"><div class="n good">2</div><div class="l">Correctness fixes</div><div class="d">NYSE/FANG class · pure helper</div></div>
+  </div>
+
+  <h2>File sizes — all under the threshold</h2>
+  <p class="lead">No giant ownership-free files in hot paths. <span class="thresh">(bar scaled to the 300-line AI-editable ceiling)</span></p>
+  <table>
+    <thead><tr><th>Module</th><th class="r">LOC</th><th>&nbsp;</th></tr></thead>
+    <tbody>
+      <tr><td>metrics.py</td><td class="r">224</td><td><span class="bar" style="width:224px"></span></td></tr>
+      <tr><td>catalog.py</td><td class="r">214</td><td><span class="bar" style="width:214px"></span></td></tr>
+      <tr><td>data/market_events.py</td><td class="r">176</td><td><span class="bar" style="width:176px"></span></td></tr>
+      <tr><td>web/app.py</td><td class="r">141</td><td><span class="bar" style="width:141px"></span></td></tr>
+      <tr><td>fetch.py</td><td class="r">124</td><td><span class="bar" style="width:124px"></span></td></tr>
+      <tr><td>web/static/style.css</td><td class="r">123</td><td><span class="bar" style="width:123px"></span></td></tr>
+      <tr><td>cli.py</td><td class="r">120</td><td><span class="bar" style="width:120px"></span></td></tr>
+      <tr><td>priority.py</td><td class="r">28</td><td><span class="bar" style="width:28px"></span></td></tr>
+    </tbody>
+  </table>
+
+  <h2>What changed</h2>
+  <ul>
+    <li><b>Test safety net (0 → 26)</b> across 4 files: metric math (Ulcer / Max DD / Sortino
+      on synthetic series with <i>known</i> answers), NAV-artifact cleaning, plan resolution
+      (Direct ≤10Y / Regular &gt;10Y), sparkline, classification, plan-grouping, priority order,
+      and the market-event dictionary.</li>
+    <li><b>Extracted <code>clean_jumps()</code></b> — the &gt;50% single-day NAV-artifact filter is now
+      a pure function (was inline in <code>load_series</code>), so the data-hygiene logic that fixed the
+      ₹10→₹1,006 reset bug is directly testable.</li>
+    <li><b>Classification fix</b> — <code>NYSE FANG+</code> / NYSE funds were labelled <code>equity_domestic</code>;
+      added <code>nyse</code>/<code>fang</code> keywords so US funds bucket as <code>equity_global</code>
+      (surfaced by a failing characterization test — the tests earned their keep on day one).</li>
+    <li><b>Cleanup</b> — removed a dead <code>fastapi.Query</code> import; ruff now clean; pytest config in
+      <code>pyproject.toml</code>.</li>
+  </ul>
+
+  <h2>Coverage map</h2>
+  <table>
+    <thead><tr><th>Surface</th><th>Tested?</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Metric math (metrics.py)</td><td class="ok">yes</td><td>known-answer synthetic series</td></tr>
+      <tr><td>NAV-artifact cleaning</td><td class="ok">yes</td><td>pure <code>clean_jumps</code></td></tr>
+      <tr><td>Plan resolution</td><td class="ok">yes</td><td>Direct/Regular/20Y rules</td></tr>
+      <tr><td>Classification + grouping</td><td class="ok">yes</td><td>11 category cases</td></tr>
+      <tr><td>Priority + events</td><td class="ok">yes</td><td>ordering + schema</td></tr>
+      <tr><td>Web routes / templates</td><td class="no">no</td><td>verified earlier via browser screenshots, not in suite</td></tr>
+      <tr><td>Async fetcher</td><td class="no">no</td><td>I/O boundary; exercised live (37,613 schemes, 0 errors)</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Residual risks &amp; costs (honest)</h2>
+  <ul>
+    <li><b>Web layer untested in the suite.</b> Routes, HTMX partials, and the uPlot chart are
+      validated by manual browser screenshots, not automated e2e. A few FastAPI <code>TestClient</code>
+      smoke tests would close this — deferred (low churn, UI is thin).</li>
+    <li><b>Metrics tested on synthetic data.</b> Formulas are pinned to closed-form answers; a single
+      real-fund cross-check was done manually. A fixture from one cached fund would harden this.</li>
+    <li><b>Classification is heuristic.</b> Category + keyword lists; the NYSE/FANG miss shows the long
+      tail. Tests now lock current behavior, so future tweaks are safe to make.</li>
+    <li><b>No static type enforcement.</b> Type hints are present but not checked; adding <code>mypy</code>/
+      <code>pyright</code> to CI is a cheap next step.</li>
+    <li><b>Out of scope (by design):</b> observability, security, deployment hardening — per the
+      antislop boundary, these belong to a separate production-readiness pass.</li>
+  </ul>
+
+  <footer>
+    Green checkpoint: <code>26 passed</code>, ruff clean, imports OK. Committed to
+    <code>main</code> as <code>780bb27</code>. Source 1,385 LOC · tests 162 LOC · max file 224 LOC.
+  </footer>
+</div>
+</body>
+</html>
