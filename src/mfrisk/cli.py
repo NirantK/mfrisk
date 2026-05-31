@@ -38,30 +38,36 @@ def catalog(
 def ingest(
     sample: bool = typer.Option(False, "--sample", help="Ingest the 1K stratified sample."),
     all: bool = typer.Option(False, "--all", help="Ingest the full priority-ordered worklist."),
+    universe: bool = typer.Option(False, "--universe",
+                                  help="Ingest EVERY mfapi scheme (~37.6K, incl. dead/IDCW)."),
     tier: Optional[str] = typer.Option(None, help="Restrict to one asset_class tier."),
     concurrency: int = typer.Option(8, help="Max in-flight requests."),
 ):
     """Fetch NAV history into the resumable cache."""
-    src = CATALOG_DIR / ("sample_1k.json" if sample else "worklist.json")
-    if not src.exists():
-        typer.echo("Run `mfrisk catalog` first.")
-        raise typer.Exit(1)
-    entries = json.loads(src.read_text())
-    if sample:  # sample is a fund list; expand to growth codes
-        codes = [c for f in entries
-                 for c in (f["direct_growth_code"], f["regular_growth_code"]) if c]
-        if tier:
-            wanted = {f["fund_id"] for f in entries if f["asset_class"] == tier}
-            codes = [c for f in entries if f["fund_id"] in wanted
-                     for c in (f["direct_growth_code"], f["regular_growth_code"]) if c]
+    if universe:
+        codes = catalog_mod.all_scheme_codes()
     else:
-        if tier:
-            entries = [e for e in entries if e["asset_class"] == tier]
-        codes = [e["scheme_code"] for e in entries]
+        src = CATALOG_DIR / ("sample_1k.json" if sample else "worklist.json")
+        if not src.exists():
+            typer.echo("Run `mfrisk catalog` first.")
+            raise typer.Exit(1)
+        entries = json.loads(src.read_text())
+        if sample:  # sample is a fund list; expand to growth codes
+            if tier:
+                entries = [f for f in entries if f["asset_class"] == tier]
+            codes = [c for f in entries
+                     for c in (f["direct_growth_code"], f["regular_growth_code"]) if c]
+        else:
+            if tier:
+                entries = [e for e in entries if e["asset_class"] == tier]
+            codes = [e["scheme_code"] for e in entries]
     typer.echo(f"ingesting {len(codes)} scheme codes -> {CACHE_DIR} "
                f"(concurrency={concurrency})")
     counts = asyncio.run(fetch_mod.run(codes, CACHE_DIR, concurrency=concurrency))
-    typer.echo(f"done: ok={counts['ok']} empty={counts['empty']} skip={counts['skip']}")
+    typer.echo(f"done: ok={counts['ok']} empty={counts['empty']} skip={counts['skip']} "
+               f"error={counts['error']} stuck={counts['stuck']}")
+    if counts["stuck"]:
+        raise typer.Exit(2)  # signal: back off and retry later
 
 
 @app.command()

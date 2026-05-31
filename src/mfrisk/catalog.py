@@ -85,6 +85,12 @@ def base_name(name: str) -> str:
     return re.sub(r"\s+", " ", n).strip()
 
 
+def all_scheme_codes(mflist_local: Path | None = None) -> list[int]:
+    """Every scheme code in the mfapi universe (all ~37.6K, incl. dead/IDCW)."""
+    text = _load_text(MFAPI_LIST, mflist_local)
+    return [int(s["schemeCode"]) for s in json.loads(text)]
+
+
 def parse_amfi(text: str) -> list[dict]:
     """Parse AMFI NAVAll.txt into rows with their SEBI category header."""
     rows: list[dict] = []

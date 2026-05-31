@@ -36,7 +36,8 @@ uv run mfrisk catalog
 
 # 3. fetch NAV history into the resumable cache (data/cache/*.json.gz)
 uv run mfrisk ingest --sample            # quick: 1K stratified sample, all types
-uv run mfrisk ingest --all               # full universe, priority order (~3 min)
+uv run mfrisk ingest --all               # canonical Growth universe, priority order
+uv run mfrisk ingest --universe          # EVERY mfapi scheme (~37.6K, incl. dead/IDCW)
 #   optional: --tier equity_domestic     restrict to one asset class
 #             --concurrency 8            in-flight requests (default 8)
 
@@ -53,8 +54,11 @@ uv run mfrisk events                      # the static market-event dictionary
 
 `ingest` is **resumable and rate-limited** — safe to Ctrl-C and re-run; it skips
 already-cached schemes and never hammers mfapi (bounded concurrency, jittered
-spacing, exponential backoff with jitter on 429/5xx). `data/` is gitignored;
-regenerate anytime with the steps above.
+spacing, exponential backoff with jitter on 429/5xx). It runs in chunks with
+**stuck-detection**: if several consecutive chunks come back mostly errors (a
+rate-limit storm / outage), it stops cleanly with `stuck=true` (exit 2) so you can
+**back off and retry in ~2 days** — the cache stays resumable, so the retry only
+fetches what's missing. `data/` is gitignored; regenerate anytime.
 
 ## Preferences (conventions baked in)
 

@@ -61,7 +61,12 @@ async def _fetch_one(
         return "skip"
     async with sem:
         await asyncio.sleep(base_delay + random.uniform(0, jitter))
-        payload = await _get(client, code)
+        # network boundary: after tenacity exhausts its retries we don't crash the
+        # whole run — a code that still fails is "error" and gets retried later.
+        try:
+            payload = await _get(client, code)
+        except (httpx.HTTPError, Retryable):
+            return "error"
     if payload.get("status") != "SUCCESS" or not payload.get("data"):
         path.write_bytes(gzip.compress(json.dumps({"status": "EMPTY"}).encode()))
         return "empty"
@@ -75,26 +80,45 @@ async def run(
     concurrency: int = 8,
     base_delay: float = 0.15,
     jitter: float = 0.25,
-    progress_every: int = 200,
+    chunk: int = 500,
+    stuck_streak_limit: int = 3,
 ) -> dict:
-    """Fetch all codes into cache_dir. Returns status counts."""
+    """Fetch all codes into cache_dir, in chunks, resumably.
+
+    Detects a rate-limit / outage "stuck" state: if `stuck_streak_limit`
+    consecutive chunks come back >80% errors, stop cleanly (cache stays
+    resumable) and return ``stuck=True`` so the caller can back off and retry
+    later. Returns status counts.
+    """
     cache_dir.mkdir(parents=True, exist_ok=True)
     sem = asyncio.Semaphore(concurrency)
-    counts = {"ok": 0, "empty": 0, "skip": 0}
+    counts = {"ok": 0, "empty": 0, "skip": 0, "error": 0, "stuck": False}
     done = 0
+    stuck_streak = 0
     limits = httpx.Limits(max_connections=concurrency * 2, max_keepalive_connections=concurrency)
     async with httpx.AsyncClient(
         http2=True, timeout=httpx.Timeout(connect=10, read=30, write=10, pool=30), limits=limits,
         headers={"User-Agent": "mfrisk/0.1 (+github.com/NirantK/mfrisk)"},
     ) as client:
-        tasks = [
-            _fetch_one(client, sem, c, cache_dir, base_delay, jitter) for c in codes
-        ]
-        for fut in asyncio.as_completed(tasks):
-            status = await fut
-            counts[status] += 1
-            done += 1
-            if done % progress_every == 0:
-                print(f"  {done}/{len(codes)}  ok={counts['ok']} "
-                      f"empty={counts['empty']} skip={counts['skip']}", flush=True)
+        for start in range(0, len(codes), chunk):
+            batch = codes[start:start + chunk]
+            results = await asyncio.gather(
+                *[_fetch_one(client, sem, c, cache_dir, base_delay, jitter) for c in batch]
+            )
+            for s in results:
+                counts[s] += 1
+            done += len(batch)
+            fresh = [s for s in results if s != "skip"]
+            err = sum(1 for s in fresh if s == "error")
+            print(f"  {done}/{len(codes)}  ok={counts['ok']} empty={counts['empty']} "
+                  f"skip={counts['skip']} error={counts['error']}", flush=True)
+            if fresh and err / len(fresh) > 0.8:
+                stuck_streak += 1
+                if stuck_streak >= stuck_streak_limit:
+                    counts["stuck"] = True
+                    print(f"  STUCK after {stuck_streak} bad chunks — stopping; "
+                          f"cache is resumable.", flush=True)
+                    break
+            else:
+                stuck_streak = 0
     return counts
