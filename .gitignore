@@ -18,3 +18,6 @@ mf_list.json
 .DS_Store
 .idea/
 .vscode/
+
+# generated catalog + NAV cache (regenerate via `mfrisk catalog`/`ingest`)
+data/

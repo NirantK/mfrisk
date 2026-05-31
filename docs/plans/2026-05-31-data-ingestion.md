@@ -118,21 +118,50 @@ sustained → full 37K universe in ~15–20 min, canonical equity slice in ~1–
 We deliberately stay well under any plausible limit; correctness/politeness over
 raw speed.
 
-## Resumable, priority-ordered run + 5K demo cadence
+## Priority sequence (updated)
+
+Asset classes are derived in `catalog.py` (category-first + name-keyword). The
+**ingest priority sequence** — the single source of truth, encoded in
+`fetch/priority.py` — orders funds equity-first, liquid-debt-last:
+
+| # | Asset class | Active canonical funds | What it covers |
+|---|---|---|---|
+| 1 | `equity_domestic` | 603 | Large/Mid/Small/Flexi/Multi/Focused/Value/Contra/Div-Yield/ELSS/Sectoral-Thematic |
+| 2 | `equity_global` | 69 | FoF Overseas + global equity (Nasdaq, S&P 500, China, US, Japan, EM) |
+| 3 | `equity_passive` | 372 | Domestic equity index funds + equity ETFs |
+| 4 | `hybrid` | 120 | Aggressive Hybrid, BAF/Dynamic AA, Equity Savings, Conservative, Balanced |
+| 5 | `hybrid_multiasset` | 35 | Multi Asset Allocation |
+| 6 | `hybrid_arbitrage` | 41 | Arbitrage |
+| 7 | `solution` | 39 | Retirement, Children's |
+| 8 | `commodity` | 46 | Gold / Silver ETF & FoF |
+| 9 | `debt` | 682 | Liquid/Overnight/MM → Ultra/Low/Short → Corp/Banking-PSU/Credit → Gilt/Long/Dynamic → target-maturity SDL/Gilt index |
+| 10 | `other` | 658 | IDF, close-ended income/growth, interval, unclassified |
+
+≈ **2,665 active canonical Growth funds** total (counts from AMFI master,
+2026-05-31). Within a tier, order by fund so a fund's Direct + Regular codes land
+together (rankable as soon as fetched). Inactive/dead predecessors are appended
+per tier for long-window history (follow-up after the active run).
 
 `fetch/runner.py`:
 
-- Build the work-list of **canonical Growth scheme codes** (Direct + Regular +
-  inactive predecessors) ordered by **priority**:
-  1. equity + global-equity, 2. hybrid, 3. debt, 4. solution/multi-asset/other.
-- Within a priority tier, order by fund (so a fund's Direct+Regular land
-  together → it becomes rankable as soon as fetched).
-- Persist progress in `ingest_state`; `--resume` (default) continues.
+- Build the work-list of **canonical Growth scheme codes** (Direct + Regular)
+  in the priority sequence above.
+- Persist progress in `ingest_state` (cache-file existence + status row);
+  `--resume` (default) skips already-fetched codes.
 - **Checkpoint every 5,000 schemes**: trigger `metrics.compute` for funds whose
-  required series are now complete and upsert into `metric`, so
-  `mfrisk serve` shows a **growing, working demo** at each milestone. Emit a
-  `log()`-style line: `checkpoint N: M funds rankable (equity X, hybrid Y…)`.
+  required series are now complete, so the microsite shows a **growing, working
+  demo** at each milestone. Emit `checkpoint N: M funds rankable (equity X…)`.
 - `mfrisk status` prints counts by status/asset class and the last checkpoint.
+
+## Initial 1K stratified sample (across all types)
+
+Before the full run, `mfrisk ingest --sample 1000` fetches a **stratified**
+1,000-fund slice so **every** asset class is represented from the start (not just
+the top priority tier). Allocation: proportional to each class's canonical count,
+**floored at 20 per class** (capped at availability), renormalized to 1,000.
+Within a class, funds are picked **evenly spaced by name** to span AMCs rather
+than clustering on one house. This sample is the first demoable dataset; the
+background full run then continues in priority order, reusing the same cache.
 
 ## Failure handling (happy-path friendly)
 
