@@ -96,12 +96,11 @@ tests/
 
 ## Data flow
 
-1. **Catalog.** Download AMFI `NAVAll.txt` (one file, ~17.6K active rows) →
-   active scheme codes + exact SEBI category + ISIN. Cross-join with mfapi full
-   list (37,613 codes) to discover **inactive** codes (in mfapi, absent from
-   AMFI = dead/merged/renamed). `classify.py` maps category→asset class and, for
-   the ambiguous Index/FoF buckets, uses a name-keyword pass (Nasdaq/S&P/Nifty/
-   China = equity-global; SDL/Gilt/Treasury/Bond = debt).
+1. **Catalog.** Download AMFI `NAVAll.txt` → active scheme codes + exact SEBI
+   category + ISIN. Cross-join with the mfapi full list to discover **inactive**
+   codes (in mfapi, absent from AMFI = dead/merged/renamed). `classify.py` maps
+   category→asset class, with a name-keyword pass for the ambiguous Index/FoF
+   buckets. Counts, endpoints, and keyword rules live in the ingestion doc.
 2. **Plan grouping.** Collapse the ~37K plan/option codes into logical **funds**.
    Identity key = (fund_house, normalized base name, asset class). Each fund
    tracks its Direct-Growth and Regular-Growth scheme codes (+ inactive
