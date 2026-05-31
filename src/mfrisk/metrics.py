@@ -51,16 +51,21 @@ def load_series(code: int | None) -> pl.DataFrame | None:
     )
     if df.height < 2:
         return None
-    # Drop data artifacts (face-value resets / scheme-code reuse / merges): no real
-    # fund NAV moves >50% in a day. Keep the clean segment after the last such jump.
-    df = df.with_columns(
+    df = clean_jumps(df)
+    return df if df.height > 1 else None
+
+
+def clean_jumps(df: pl.DataFrame) -> pl.DataFrame:
+    """Drop data artifacts (face-value resets / scheme-code reuse / merges): no
+    real fund NAV moves >50% in a day, so keep only the clean segment after the
+    last such jump. Pure: takes and returns a sorted (date, nav) frame."""
+    flagged = df.with_columns(
         ((pl.col("nav") / pl.col("nav").shift(1) - 1).abs() > 0.5).alias("jump")
     ).with_row_index("i")
-    bad = df.filter(pl.col("jump"))["i"]
+    bad = flagged.filter(pl.col("jump"))["i"]
     if bad.len():
         df = df.slice(int(bad[-1]) + 1)
-    df = df.select("date", "nav")
-    return df if df.height > 1 else None
+    return df.select("date", "nav")
 
 
 def spark_values(direct: pl.DataFrame | None, regular: pl.DataFrame | None,

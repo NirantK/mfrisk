@@ -27,7 +27,7 @@ _DEBT_KW = (
 )
 _GLOBAL_KW = (
     "nasdaq", "s&p", "china", "japan", "us ", "u.s", "global", "world", "hang seng",
-    "emerging", "developed", "greater china", "offshore", "overseas",
+    "emerging", "developed", "greater china", "offshore", "overseas", "nyse", "fang",
 )
 _OPTION_TOKENS = re.compile(
     r"\b(direct|regular|growth|idcw|dividend|bonus|plan|option|payout|"
